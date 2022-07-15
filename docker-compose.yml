@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  library-api:
+    build: 
+      context: ./
+      dockerfile: Dockerfile
+    volumes:
+      - ./src/:/app
+    ports:
+      - "3001:3001"
+    tty: true
+    stdin_open: true
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      sessionId: null
+
+
