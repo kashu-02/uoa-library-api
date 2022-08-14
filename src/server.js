@@ -7,7 +7,7 @@ const app = express();
 import apiv1 from './api/v1/index.js'
 
 // /にアクセスがあった時、Deploy succeededと返す
-app.get('/', (req, res) => { res.send(process.env.sessionId); });
+app.get('/', (req, res) => { res.send("/ of UoA Library Search API"); });
 
 app.use('/api/v1', apiv1)
 
