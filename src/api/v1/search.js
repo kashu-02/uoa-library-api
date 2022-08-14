@@ -1,37 +1,39 @@
-import express from "express";
-const app = express();
+import express from 'express';
 
-import axios from "axios";
+import axios from 'axios';
 import { JSDOM } from 'jsdom';
 
-import getSessionId from '../../lib/getSessionId.js'
-import htmlspecialchars_decode from '../../lib/htmlSpecialChar.js';
+import getSessionId from '../../lib/getSessionId.js';
+import htmlSpecialCharsDecode from '../../lib/htmlSpecialChar.js';
 
-app.get('/',  (req, res, next) => {
+const app = express();
+
+app.get('/', (req, res, next) => {
   (async () => {
-    const sessionId = await getSessionId()
+    const sessionId = await getSessionId();
 
     if (Object.keys(req.query).length <= 1 && req.query.pageSize) {
-      let error = new Error('At least one search criteria are required.')
-      error.status = 400
-      throw error
+      const error = new Error('At least one search criteria are required.');
+      error.status = 400;
+      throw error;
     }
     if (!req.query.pageSize) {
-      let error = new Error('pageSize is required.')
-      error.status = 400
-      throw error
+      const error = new Error('pageSize is required.');
+      error.status = 400;
+      throw error;
     }
 
-    let bunkan, bunkanStr;
-    if (req.query.facility == 'university') {
+    let bunkan;
+    let bunkanStr;
+    if (req.query.facility === 'university') {
       bunkan = '01';
       bunkanStr = '四大';
-    } else if (req.query.facility == 'junior-college') {
+    } else if (req.query.facility === 'junior-college') {
       bunkan = '02';
-      bunkanStr = '短大'
+      bunkanStr = '短大';
     } else {
       bunkan = '';
-      bunkanStr = '全て'
+      bunkanStr = '全て';
     }
     const data = new URLSearchParams();
     data.append('position', 'book');
@@ -85,112 +87,140 @@ app.get('/',  (req, res, next) => {
     data.append('searchForm.bibExtNm14', '');
     data.append('searchForm.bibExtNm15', '');
 
-    const result = await axios.post('https://libopsv.u-aizu.ac.jp/search/search', data, {
-      headers: { 'Cookie': `JSESSIONID=${sessionId}` }
-    })
-
-    const { document } = (new JSDOM(result.data.replace(/\r?\n/g, '').replace(/\t?/g, ''))).window
-    const books = document.querySelectorAll('#BookListTable > table > tbody > tr')
-    console.log(`book total: ${books.length}`)
-    let results = []
-
-    books.forEach((book, index_books) => {
-      console.log(`index_books: ${index_books}`)
-      console.log(`book: ${book.innerHTML}`)
-      if ((books.length == 3 && index_books == 0) || (books.length > 3 && index_books < 2) || index_books == books.length - 1) {
-        return
+    const result = await axios.post(
+      'https://libopsv.u-aizu.ac.jp/search/search',
+      data,
+      {
+        headers: { Cookie: `JSESSIONID=${sessionId}` },
       }
-      console.log(`books or: ${book.querySelectorAll('td')[3].innerHTML}`)
-      if (book.querySelectorAll('td')[3].innerHTML == '図') {
-        const book_info = book.querySelectorAll('td')[4]
-        const titles = book_info.querySelectorAll('table')[0].querySelector('tbody > tr > td > a').innerHTML
-        const title = titles.match(/^(.*) \//)
-        const authors = titles.match(/\/ (.*?著)/)
-        const publisher = titles.match(/-- (.*?),/)
-        const series = titles.match(/-- \((.*)\)\./)
-        const biblographyId = book_info.querySelectorAll('table')[0].querySelector('tbody > tr > td > a').href.match(/bibId=(.*)/)[1]
-        const collections = book_info.querySelectorAll('table')[1].querySelectorAll('tbody > tr > td')[1].querySelectorAll('table > tbody > tr')
-        let collections_results = []
-        collections.forEach((collection, index_collections) => {
-          const elements = collection.querySelectorAll('td')
-          console.log(`element: ${elements[1].innerHTML}`)
-          const volume = elements[0].innerHTML
-          const location = elements[1].innerHTML
-          
-          const requestNumber = elements[2].innerHTML
-          const materialId = elements[3].innerHTML
-          let condition
-          if (elements[4].innerHTML == '貸出中') {
-            condition = 'on-loan'
-          } else if (elements[4].innerHTML == ' []') {
-            condition = 'reference-only'
+    );
+
+    const { document } = new JSDOM(
+      result.data.replace(/\r?\n/g, '').replace(/\t?/g, '')
+    ).window;
+    const books = document.querySelectorAll(
+      '#BookListTable > table > tbody > tr'
+    );
+    console.log(`book total: ${books.length}`);
+    const results = [];
+
+    books.forEach((book, booksIndex) => {
+      console.log(`booksIndex: ${booksIndex}`);
+      console.log(`book: ${book.innerHTML}`);
+      if (
+        (books.length === 3 && booksIndex === 0) ||
+        (books.length > 3 && booksIndex < 2) ||
+        booksIndex === books.length - 1
+      ) {
+        return;
+      }
+      console.log(`books or: ${book.querySelectorAll('td')[3].innerHTML}`);
+      if (book.querySelectorAll('td')[3].innerHTML === '図') {
+        const bookInfo = book.querySelectorAll('td')[4];
+        const titles = bookInfo
+          .querySelectorAll('table')[0]
+          .querySelector('tbody > tr > td > a').innerHTML;
+        const title = titles.match(/^(.*) \//);
+        const authors = titles.match(/\/ (.*?著)/);
+        const publisher = titles.match(/-- (.*?),/);
+        const series = titles.match(/-- \((.*)\)\./);
+        const biblographyId = bookInfo
+          .querySelectorAll('table')[0]
+          .querySelector('tbody > tr > td > a')
+          .href.match(/bibId=(.*)/)[1];
+        const collections = bookInfo
+          .querySelectorAll('table')[1]
+          .querySelectorAll('tbody > tr > td')[1]
+          .querySelectorAll('table > tbody > tr');
+        const collectionsResults = [];
+        collections.forEach((collection) => {
+          const elements = collection.querySelectorAll('td');
+          console.log(`element: ${elements[1].innerHTML}`);
+          const volume = elements[0].innerHTML;
+          const location = elements[1].innerHTML;
+
+          const requestNumber = elements[2].innerHTML;
+          const materialId = elements[3].innerHTML;
+          let condition;
+          if (elements[4].innerHTML === '貸出中') {
+            condition = 'on-loan';
+          } else if (elements[4].innerHTML === ' []') {
+            condition = 'reference-only';
           } else {
-            condition = 'available'
+            condition = 'available';
           }
-          collections_results.push({
-            volume: volume ? htmlspecialchars_decode(volume) : '',
-            location: location ? htmlspecialchars_decode(location) : '',
-            requestNumber: requestNumber ? htmlspecialchars_decode(requestNumber) : '',
-            materialId: materialId ? htmlspecialchars_decode(materialId) : '',
-            condition: condition
-          })
-          console.log(JSON.stringify(collections_results))
+          collectionsResults.push({
+            volume: volume ? htmlSpecialCharsDecode(volume) : '',
+            location: location ? htmlSpecialCharsDecode(location) : '',
+            requestNumber: requestNumber
+              ? htmlSpecialCharsDecode(requestNumber)
+              : '',
+            materialId: materialId ? htmlSpecialCharsDecode(materialId) : '',
+            condition,
+          });
+          console.log(JSON.stringify(collectionsResults));
         });
         results.push({
           type: 'book',
-          title: title ? htmlspecialchars_decode(title[1]) : '',
-          authors: authors ? htmlspecialchars_decode(authors[1]) : '',
-          publisher: publisher ? htmlspecialchars_decode(publisher[1]) : '',
-          series: series ? htmlspecialchars_decode(series[1]) : '',
-          biblographyId: biblographyId,
-          collections: collections_results
-        })
-        console.log(`\n\nresults: ${JSON.stringify(results)}\n\n`)
-      } else if(book.querySelectorAll('td')[3].innerHTML == '雑') {
-        const book_info = book.querySelectorAll('td')[4]
-        const titles = book_info.querySelectorAll('table')[0].querySelector('tbody > tr > td > a').innerHTML
-        const title = titles.match(/^(.*?)\./)
-        const journal = titles.match(/\(.*? \|/)
-        const volume = titles.match(/-- (.*?),/)
-        const biblographyId = book_info.querySelectorAll('table')[0].querySelector('tbody > tr > td > a').href.match(/bibId=(.*)/)[1]
-        const collections = book_info.querySelectorAll('table')[1].querySelectorAll('tbody > tr > td')[1].querySelectorAll('table > tbody > tr')
-        let collections_results = []
-        collections.forEach((collection, index_collections) => {
-          const elements = collection.querySelectorAll('td')
-          console.log(`element: ${elements[1].innerHTML}`)
-          const location = elements[1].innerHTML
-          let condition
-          if (elements[4].innerHTML == '貸出中') {
-            condition = 'on-loan'
+          title: title ? htmlSpecialCharsDecode(title[1]) : '',
+          authors: authors ? htmlSpecialCharsDecode(authors[1]) : '',
+          publisher: publisher ? htmlSpecialCharsDecode(publisher[1]) : '',
+          series: series ? htmlSpecialCharsDecode(series[1]) : '',
+          biblographyId,
+          collections: collectionsResults,
+        });
+        console.log(`\n\nresults: ${JSON.stringify(results)}\n\n`);
+      } else if (book.querySelectorAll('td')[3].innerHTML === '雑') {
+        const bookInfo = book.querySelectorAll('td')[4];
+        const titles = bookInfo
+          .querySelectorAll('table')[0]
+          .querySelector('tbody > tr > td > a').innerHTML;
+        const title = titles.match(/^(.*?)\./);
+        const journal = titles.match(/\(.*? \|/);
+        const volume = titles.match(/-- (.*?),/);
+        const biblographyId = bookInfo
+          .querySelectorAll('table')[0]
+          .querySelector('tbody > tr > td > a')
+          .href.match(/bibId=(.*)/)[1];
+        const collections = bookInfo
+          .querySelectorAll('table')[1]
+          .querySelectorAll('tbody > tr > td')[1]
+          .querySelectorAll('table > tbody > tr');
+        const collectionsResults = [];
+        collections.forEach((collection) => {
+          const elements = collection.querySelectorAll('td');
+          console.log(`element: ${elements[1].innerHTML}`);
+          const location = elements[1].innerHTML;
+          let condition;
+          if (elements[4].innerHTML === '貸出中') {
+            condition = 'on-loan';
           } else if (elements[4].innerHTML.match(/.*\[\].*/)) {
-            condition = 'reference-only'
+            condition = 'reference-only';
           } else {
-            condition = 'available'
+            condition = 'available';
           }
-          collections_results.push({
-            location: location ? htmlspecialchars_decode(location) : '',
-            condition: condition
-          })
-          console.log(JSON.stringify(collections_results))
+          collectionsResults.push({
+            location: location ? htmlSpecialCharsDecode(location) : '',
+            condition,
+          });
+          console.log(JSON.stringify(collectionsResults));
         });
         results.push({
           type: 'magazine',
-          title: title ? htmlspecialchars_decode(title[1]) : '',
-          journal: journal ? htmlspecialchars_decode(journal[1]) : '',
-          volume: volume ? htmlspecialchars_decode(volume[1]) : '',
-          biblographyId: biblographyId,
-          collections: collections_results
-        })
-        console.log(`\n\nresults: ${JSON.stringify(results)}\n\n`)
+          title: title ? htmlSpecialCharsDecode(title[1]) : '',
+          journal: journal ? htmlSpecialCharsDecode(journal[1]) : '',
+          volume: volume ? htmlSpecialCharsDecode(volume[1]) : '',
+          biblographyId,
+          collections: collectionsResults,
+        });
+        console.log(`\n\nresults: ${JSON.stringify(results)}\n\n`);
       }
-      });
-  
+    });
 
-   // console.log(JSON.stringify(document.querySelector('#BookListTable table tbody tr').innerHTML))
-    res.send(results)
+    // console.log(JSON.stringify(document.querySelector('#BookListTable table tbody tr').innerHTML))
+    res.send(results);
+  })().catch(next);
+});
 
-  })().catch(next)
-})
-
-export {app as default};
-
+// eslint-disable-next-line no-restricted-exports
+export { app as default };

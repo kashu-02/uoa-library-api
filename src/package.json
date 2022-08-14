@@ -5,7 +5,8 @@
   "license": "MIT",
   "scripts": {
     "start": "nodemon server.js",
-    "start-production": "node server.js"
+    "start-production": "node server.js",
+    "lint": "yarn prettier --write '**/*.{js,json,md,html}' && yarn eslint --fix ."
   },
   "devDependencies": {
     "eslint": "^8.18.0",
