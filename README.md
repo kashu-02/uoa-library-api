@@ -34,8 +34,8 @@
 URL: `https://uoa-library-api.kashu.dev/api/v1`
 | エンドポイント | 機能 |
 | ---- | ---- |
-| /search | 蔵書検索 |
-| /detail | 蔵書詳細 |
+| /search | [蔵書検索](#蔵書検索) |
+| /detail | [蔵書詳細](#蔵書詳細(本のみ対応)) |
 
 ### 蔵書検索
 **メソッド**: `GET`  
