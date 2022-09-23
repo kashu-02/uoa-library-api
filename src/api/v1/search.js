@@ -105,8 +105,8 @@ app.get('/', (req, res, next) => {
     const results = [];
 
     books.forEach((book, booksIndex) => {
-      console.log(`booksIndex: ${booksIndex}`);
-      console.log(`book: ${book.innerHTML}`);
+      // console.log(`booksIndex: ${booksIndex}`);
+      // console.log(`book: ${book.innerHTML}`);
       if (
         (books.length === 3 && booksIndex === 0) ||
         (books.length > 3 && booksIndex < 2) ||
@@ -114,7 +114,7 @@ app.get('/', (req, res, next) => {
       ) {
         return;
       }
-      console.log(`books or: ${book.querySelectorAll('td')[3].innerHTML}`);
+      // console.log(`books or: ${book.querySelectorAll('td')[3].innerHTML}`);
       if (book.querySelectorAll('td')[3].innerHTML === '図') {
         const bookInfo = book.querySelectorAll('td')[4];
         const titles = bookInfo
@@ -133,9 +133,10 @@ app.get('/', (req, res, next) => {
           .querySelectorAll('tbody > tr > td')[1]
           .querySelectorAll('table > tbody > tr');
         const collectionsResults = [];
+        let partialResult = false;
         collections.forEach((collection) => {
           const elements = collection.querySelectorAll('td');
-          console.log(`element: ${elements[1].innerHTML}`);
+          // console.log(`element: ${elements[1].innerHTML}`);
           const volume = elements[0].innerHTML;
           const location = elements[1].innerHTML;
 
@@ -146,8 +147,9 @@ app.get('/', (req, res, next) => {
             condition = 'on-loan';
           } else if (elements[4].innerHTML === ' []') {
             condition = 'reference-only';
-          } else {
-            condition = 'available';
+          } else if (elements[4].innerHTML === 'and much more') {
+            partialResult = true;
+            return;
           }
           collectionsResults.push({
             volume: volume ? htmlSpecialCharsDecode(volume) : '',
@@ -158,7 +160,7 @@ app.get('/', (req, res, next) => {
             materialId: materialId ? htmlSpecialCharsDecode(materialId) : '',
             condition,
           });
-          console.log(JSON.stringify(collectionsResults));
+          // console.log(JSON.stringify(collectionsResults));
         });
         results.push({
           type: 'book',
@@ -168,16 +170,17 @@ app.get('/', (req, res, next) => {
           series: series ? htmlSpecialCharsDecode(series[1]) : '',
           biblographyId,
           collections: collectionsResults,
+          partialResult
         });
-        console.log(`\n\nresults: ${JSON.stringify(results)}\n\n`);
+        // console.log(`\n\nresults: ${JSON.stringify(results)}\n\n`);
       } else if (book.querySelectorAll('td')[3].innerHTML === '雑') {
         const bookInfo = book.querySelectorAll('td')[4];
         const titles = bookInfo
           .querySelectorAll('table')[0]
           .querySelector('tbody > tr > td > a').innerHTML;
         const title = titles.match(/^(.*?)\./);
-        const journal = titles.match(/\(.*? \|/);
-        const volume = titles.match(/-- (.*?),/);
+        const journal = titles.match(/（(.*?) \| /);
+        const volume = titles.match(/\| (.*?),/);
         const biblographyId = bookInfo
           .querySelectorAll('table')[0]
           .querySelector('tbody > tr > td > a')

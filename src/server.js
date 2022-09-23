@@ -21,7 +21,6 @@ console.log(`Server running at ${PORT}`);
 app.use((err, req, res, next) => {
   console.log(err);
   res.status(err.status || 500).json({
-    status: err.status || 500,
     message:
       err.status !== 500
         ? err.message || 'エラーが発生しました。'
